@@ -23,9 +23,14 @@ pipeline {
                 }
             }
         }
-        stage('Package') {
+                stage('Package') {
             steps {
                 sh 'mvn -B package -DskipTests'
+            }
+            post {
+                success {
+                    archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                }
             }
         }
         stage('Run') {
