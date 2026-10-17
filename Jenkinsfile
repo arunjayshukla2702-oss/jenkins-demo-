@@ -10,18 +10,27 @@ pipeline {
         }
         stage('Build') {
             steps {
-                echo 'Building...'
-                sh 'cat README.md'
+                sh 'mvn -B clean compile'
             }
         }
         stage('Test') {
             steps {
-                echo 'Running tests...'
+                sh 'mvn -B test'
+            }
+            post {
+                always {
+                    junit 'target/surefire-reports/*.xml'
+                }
             }
         }
-        stage('Deploy') {
+        stage('Package') {
             steps {
-                echo 'Deploying...'
+                sh 'mvn -B package -DskipTests'
+            }
+        }
+        stage('Run') {
+            steps {
+                sh 'java -jar target/demo-app-1.0.jar'
             }
         }
     }
