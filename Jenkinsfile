@@ -42,6 +42,7 @@ pipeline {
                 sh 'docker build -t demo-app:${BUILD_NUMBER} .'
             }
         }
+
         stage('Docker Push') {
             steps {
                 withCredentials([usernamePassword(
@@ -57,12 +58,21 @@ pipeline {
                 }
             }
             post {
-                always { sh 'docker logout' }
+                always {
+                    sh 'docker logout'
+                }
             }
         }
-        stage('Docker Run') {
+
+        stage('Deploy') {
             steps {
-                sh 'docker run --rm demo-app:${BUILD_NUMBER}'
+                sh '''
+                    docker rm -f demo || true
+                    docker run -d --name demo -p 8081:8080 \
+                        -e APP_VERSION=${BUILD_NUMBER} \
+                        --restart unless-stopped \
+                        demo-app:${BUILD_NUMBER}
+                '''
             }
         }
     }
