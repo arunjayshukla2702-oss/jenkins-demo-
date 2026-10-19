@@ -42,7 +42,24 @@ pipeline {
                 sh 'docker build -t demo-app:${BUILD_NUMBER} .'
             }
         }
-
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DH_USER',
+                    passwordVariable: 'DH_PASS'
+                )]) {
+                    sh '''
+                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                        docker tag demo-app:${BUILD_NUMBER} $DH_USER/demo-app:${BUILD_NUMBER}
+                        docker push $DH_USER/demo-app:${BUILD_NUMBER}
+                    '''
+                }
+            }
+            post {
+                always { sh 'docker logout' }
+            }
+        }
         stage('Docker Run') {
             steps {
                 sh 'docker run --rm demo-app:${BUILD_NUMBER}'
