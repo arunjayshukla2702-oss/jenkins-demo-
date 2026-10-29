@@ -70,20 +70,22 @@ pipeline {
         }
 
         stage('Deploy Local') {
-            when {
-                expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
-            }
-            steps {
-                sh '''
-                    docker rm -f demo || true
-                    docker run -d --name demo -p 8081:8080 \
-                      --restart unless-stopped \
-                      demo-app:${BUILD_NUMBER}
-                    sleep 5
-                    curl -f http://localhost:8081/health
-                '''
-            }
-        }
+    when {
+        expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+    }
+    steps {
+        sh '''
+            docker stop demo || true
+            docker rm -f demo || true
+            sleep 3
+            docker run -d --name demo -p 8081:8080 \
+              --restart unless-stopped \
+              demo-app:${BUILD_NUMBER}
+            sleep 5
+            curl -f http://localhost:8081/health
+        '''
+    }
+}
     }
 
     post {
