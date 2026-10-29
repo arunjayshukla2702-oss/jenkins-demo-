@@ -1,7 +1,12 @@
 pipeline {
     agent any
 
+    environment {
+        DH_USER = 'arunjayshukla'
+    }
+
     stages {
+
         stage('Checkout') {
             steps {
                 checkout scm
@@ -47,31 +52,35 @@ pipeline {
             steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
-                    usernameVariable: 'DH_USER',
+                    usernameVariable: 'DH_USER_CRED',
                     passwordVariable: 'DH_PASS'
                 )]) {
                     sh '''
-                        echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                        docker tag demo-app:${BUILD_NUMBER} $DH_USER/demo-app:${BUILD_NUMBER}
-                        docker push $DH_USER/demo-app:${BUILD_NUMBER}
+                        echo "$DH_PASS" | docker login -u "$DH_USER_CRED" --password-stdin
+                        docker tag demo-app:${BUILD_NUMBER} $DH_USER_CRED/demo-app:${BUILD_NUMBER}
+                        docker push $DH_USER_CRED/demo-app:${BUILD_NUMBER}
                     '''
                 }
             }
             post {
                 always {
-                    sh 'docker logout'
+                    sh 'docker logout || true'
                 }
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy Local') {
+            when {
+                expression { env.GIT_BRANCH == 'origin/main' || env.BRANCH_NAME == 'main' }
+            }
             steps {
                 sh '''
                     docker rm -f demo || true
                     docker run -d --name demo -p 8081:8080 \
-                        -e APP_VERSION=${BUILD_NUMBER} \
-                        --restart unless-stopped \
-                        demo-app:${BUILD_NUMBER}
+                      --restart unless-stopped \
+                      demo-app:${BUILD_NUMBER}
+                    sleep 5
+                    curl -f http://localhost:8081/health
                 '''
             }
         }
